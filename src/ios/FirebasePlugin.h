@@ -5,6 +5,10 @@
 + (FirebasePlugin *) firebasePlugin;
 - (void)getInstanceId:(CDVInvokedUrlCommand*)command;
 - (void)getToken:(CDVInvokedUrlCommand*)command;
+- (void)registerNotification:(CDVInvokedUrlCommand*)command;
+- (void)notifyOfMessage:(NSData*) payload;
+- (void)appEnterBackground;
+- (void)appEnterForeground;
 - (void)grantPermission:(CDVInvokedUrlCommand*)command;
 - (void)setBadgeNumber:(CDVInvokedUrlCommand*)command;
 - (void)getBadgeNumber:(CDVInvokedUrlCommand*)command;

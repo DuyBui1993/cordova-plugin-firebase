@@ -3,6 +3,8 @@
 #import "Firebase.h"
 #import <objc/runtime.h>
 
+static NSData *lastPush;
+
 #if defined(__IPHONE_10_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_10_0
 @import UserNotifications;
 #endif
@@ -35,14 +37,14 @@
 
 - (BOOL)application:(UIApplication *)application swizzledDidFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     [self application:application swizzledDidFinishLaunchingWithOptions:launchOptions];
-    
+
     [FIRApp configure];
-    
+
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(tokenRefreshNotification:)
                                                  name:kFIRInstanceIDTokenRefreshNotification object:nil];
-    
+
     self.applicationInBackground = @(YES);
-    
+
     return YES;
 }
 
@@ -63,7 +65,7 @@
     // should be done.
     NSString *refreshedToken = [[FIRInstanceID instanceID] token];
     NSLog(@"InstanceID token: %@", refreshedToken);
-    
+
     // Connect to FCM since connection may have failed when attempted before having a token.
     [self connectToFcm];
 
@@ -84,12 +86,21 @@
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
     NSDictionary *mutableUserInfo = [userInfo mutableCopy];
-    
+
     [mutableUserInfo setValue:self.applicationInBackground forKey:@"tap"];
-    
+
     // Pring full message.
     NSLog(@"%@", mutableUserInfo);
-    
+    if (application.applicationState != UIApplicationStateActive) {
+        NSLog(@"New method with push callback: %@", userInfo);
+
+        [mutableUserInfo setValue:@(YES) forKey:@"wasTapped"];
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:mutableUserInfo
+                                                           options:0
+                                                             error:&error];
+        NSLog(@"APP WAS CLOSED DURING PUSH RECEPTION Saved data: %@", jsonData);
+        lastPush = jsonData;
+    }
     [FirebasePlugin.firebasePlugin sendNotification:mutableUserInfo];
 }
 
@@ -97,12 +108,12 @@
     fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
 
     NSDictionary *mutableUserInfo = [userInfo mutableCopy];
-    
+
     [mutableUserInfo setValue:self.applicationInBackground forKey:@"tap"];
-    
+
     // Pring full message.
     NSLog(@"%@", mutableUserInfo);
-    
+
     [FirebasePlugin.firebasePlugin sendNotification:mutableUserInfo];
 }
 
@@ -111,12 +122,28 @@
        willPresentNotification:(UNNotification *)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
     NSDictionary *mutableUserInfo = [notification.request.content.userInfo mutableCopy];
-    
+
     [mutableUserInfo setValue:self.applicationInBackground forKey:@"tap"];
-    
+
     // Pring full message.
     NSLog(@"%@", mutableUserInfo);
-    
+    if (application.applicationState == UIApplicationStateActive) {
+        [mutableUserInfo setValue:@(NO) forKey:@"wasTapped"];
+        NSLog(@"app active");
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:mutableUserInfo
+                                                           options:0
+                                                             error:&error];
+        [FirebasePlugin.firebasePlugin notifyOfMessage:jsonData];
+    // app is in background or in stand by (NOTIFICATION WILL BE TAPPED)
+    }else{
+        [mutableUserInfo setValue:@(YES) forKey:@"wasTapped"];
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:mutableUserInfo
+                                                           options:0
+                                                             error:&error];
+        NSLog(@"APP WAS CLOSED DURING PUSH RECEPTION Saved data: %@", jsonData);
+        lastPush = jsonData;
+    }
+
     [FirebasePlugin.firebasePlugin sendNotification:mutableUserInfo];
 }
 
@@ -126,5 +153,28 @@
     NSLog(@"%@", [remoteMessage appData]);
 }
 #endif
+
++(NSData*)getLastPush
+{
+    NSData* returnValue = lastPush;
+    lastPush = nil;
+    return returnValue;
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application
+{
+    NSLog(@"app become active");
+    [FirebasePlugin.firebasePlugin appEnterForeground];
+    [self connectToFcm];
+}
+
+// [START disconnect_from_fcm]
+- (void)applicationDidEnterBackground:(UIApplication *)application
+{
+    NSLog(@"app entered background");
+    [[FIRMessaging messaging] disconnect];
+    [FirebasePlugin.firebasePlugin appEnterBackground];
+    NSLog(@"Disconnected from FCM");
+}
 
 @end
