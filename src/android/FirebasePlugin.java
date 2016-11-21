@@ -152,7 +152,7 @@ public class FirebasePlugin extends CordovaPlugin {
             public void run() {
                 try {
                   if(lastPush != null) {
-                    FCMPlugin.sendPushPayload( lastPush );
+                    FirebasePlugin.sendPushPayload( lastPush );
                   }
 						      lastPush = null;
 						      callbackContext.success();
