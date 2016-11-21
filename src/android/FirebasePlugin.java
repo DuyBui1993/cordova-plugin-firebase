@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import org.apache.cordova.CordovaWebView;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
