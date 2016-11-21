@@ -1,13 +1,13 @@
 {
   "author": {
-    "name": "Robert Arnesson"
+    "name": "RobeBuirt Arnesson"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arnesson/cordova-plugin-firebase"
+    "url": "https://github.com/arnesson/cordova-plugin-firebase-duybui"
   },
-  "name": "cordova-plugin-firebase",
+  "name": "cordova-plugin-firebase-duybui",
   "version": "0.1.18",
   "description": "Cordova plugin for Google Firebase",
   "cordova": {
