@@ -43,6 +43,7 @@ public class FirebasePlugin extends CordovaPlugin {
     private final String TAG = "FirebasePlugin";
     protected static final String KEY = "badge";
 
+    public static CordovaWebView gWebView;
     private static boolean inBackground = true;
     private static ArrayList<Bundle> notificationStack = null;
     private static WeakReference<CallbackContext> notificationCallbackContext;
@@ -51,6 +52,12 @@ public class FirebasePlugin extends CordovaPlugin {
     public static String notificationCallBack = "FirebasePlugin.onNotificationReceived";
 	  public static Boolean notificationCallBackReady = false;
 	  public static Map<String, Object> lastPush = null;
+
+    @Override
+    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
+        super.initialize(cordova, webView);
+        gWebView = webView;
+    }
 
     @Override
     protected void pluginInitialize() {
@@ -176,7 +183,7 @@ public class FirebasePlugin extends CordovaPlugin {
 				lastPush = payload;
 			}
 		} catch (Exception e) {
-			callbackContext.error(TAG, "\tERROR sendPushToView. SAVED NOTIFICATION: " + e.getMessage());
+			Log.d(TAG, "\tERROR sendPushToView. SAVED NOTIFICATION: " + e.getMessage());
 			lastPush = payload;
 		}
 	}
