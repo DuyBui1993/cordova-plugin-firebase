@@ -184,7 +184,6 @@ public class FirebasePlugin extends CordovaPlugin {
 				lastPush = payload;
 			}
 		} catch (Exception e) {
-			Log.d(TAG, "\tERROR sendPushToView. SAVED NOTIFICATION: " + e.getMessage());
 			lastPush = payload;
 		}
 	}
