@@ -16,6 +16,10 @@
 
 @implementation FirebasePlugin
 
+static BOOL notificatorReceptorReady = NO;
+static BOOL appInForeground = YES;
+static NSString *notificationCallback = @"FirebasePlugin.onNotificationReceived";
+
 @synthesize notificationCallbackId;
 @synthesize tokenRefreshCallbackId;
 @synthesize notificationStack;
@@ -49,6 +53,45 @@ static FirebasePlugin *firebasePlugin;
                     [[FIRInstanceID instanceID] token]];
 
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+- (void) registerNotification:(CDVInvokedUrlCommand *)command
+{
+    notificatorReceptorReady = YES;
+    NSData* lastPush = [AppDelegate getLastPush];
+    if (lastPush != nil) {
+        [FirebasePlugin.firebasePlugin notifyOfMessage:lastPush];
+    }
+
+    CDVPluginResult* pluginResult = nil;
+    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
+-(void) notifyOfMessage:(NSData *)payload
+{
+    NSString *JSONString = [[NSString alloc] initWithBytes:[payload bytes] length:[payload length] encoding:NSUTF8StringEncoding];
+    NSString * notifyJS = [NSString stringWithFormat:@"%@(%@);", notificationCallback, JSONString];
+
+    if ([self.webView respondsToSelector:@selector(stringByEvaluatingJavaScriptFromString:)]) {
+        [(UIWebView *)self.webView stringByEvaluatingJavaScriptFromString:notifyJS];
+    } else {
+        [self.webViewEngine evaluateJavaScript:notifyJS completionHandler:nil];
+    }
+}
+
+-(void) appEnterBackground
+{
+    appInForeground = NO;
+}
+
+-(void) appEnterForeground
+{
+    NSData* lastPush = [AppDelegate getLastPush];
+    if (lastPush != nil) {
+        [FirebasePlugin.firebasePlugin notifyOfMessage:lastPush];
+    }
+    appInForeground = YES;
 }
 
 - (void)grantPermission:(CDVInvokedUrlCommand *)command {
@@ -110,18 +153,18 @@ static FirebasePlugin *firebasePlugin;
 
 - (void)subscribe:(CDVInvokedUrlCommand *)command {
     NSString* topic = [NSString stringWithFormat:@"/topics/%@", [command.arguments objectAtIndex:0]];
-    
+
     [[FIRMessaging messaging] subscribeToTopic: topic];
-    
+
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void)unsubscribe:(CDVInvokedUrlCommand *)command {
     NSString* topic = [NSString stringWithFormat:@"/topics/%@", [command.arguments objectAtIndex:0]];
-    
+
     [[FIRMessaging messaging] unsubscribeFromTopic: topic];
-    
+
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
@@ -154,7 +197,7 @@ static FirebasePlugin *firebasePlugin;
         if (!self.notificationStack) {
             self.notificationStack = [[NSMutableArray alloc] init];
         }
-        
+
         // stack notifications until a callback has been registered
         [self.notificationStack addObject:userInfo];
 
@@ -176,9 +219,9 @@ static FirebasePlugin *firebasePlugin;
     [self.commandDelegate runInBackground:^{
         NSString* name = [command.arguments objectAtIndex:0];
         NSDictionary* parameters = [command.arguments objectAtIndex:1];
-        
+
         [FIRAnalytics logEventWithName:name parameters:parameters];
-        
+
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
@@ -187,9 +230,9 @@ static FirebasePlugin *firebasePlugin;
 - (void)setUserId:(CDVInvokedUrlCommand *)command {
     [self.commandDelegate runInBackground:^{
         NSString* id = [command.arguments objectAtIndex:0];
-        
+
         [FIRAnalytics setUserID:id];
-        
+
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
@@ -199,9 +242,9 @@ static FirebasePlugin *firebasePlugin;
     [self.commandDelegate runInBackground:^{
         NSString* name = [command.arguments objectAtIndex:0];
         NSString* value = [command.arguments objectAtIndex:1];
-        
+
         [FIRAnalytics setUserPropertyString:value forName:name];
-        
+
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];

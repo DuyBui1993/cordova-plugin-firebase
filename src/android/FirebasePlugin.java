@@ -48,6 +48,10 @@ public class FirebasePlugin extends CordovaPlugin {
     private static WeakReference<CallbackContext> notificationCallbackContext;
     private static WeakReference<CallbackContext> tokenRefreshCallbackContext;
 
+    public static String notificationCallBack = "FirebasePlugin.onNotificationReceived";
+	  public static Boolean notificationCallBackReady = false;
+	  public static Map<String, Object> lastPush = null;
+
     @Override
     protected void pluginInitialize() {
         final Context context = this.cordova.getActivity().getApplicationContext();
@@ -66,6 +70,9 @@ public class FirebasePlugin extends CordovaPlugin {
             return true;
         } else if (action.equals("getToken")) {
             this.getToken(callbackContext);
+            return true;
+        } else if (action.equals("registerNotification")) {
+            this.registerNotification(callbackContext);
             return true;
         } else if (action.equals("setBadgeNumber")) {
             this.setBadgeNumber(callbackContext, args.getInt(0));
@@ -138,6 +145,41 @@ public class FirebasePlugin extends CordovaPlugin {
         FirebasePlugin.notificationCallbackContext = null;
         FirebasePlugin.tokenRefreshCallbackContext = null;
     }
+
+    private void registerNotification(final CallbackContext callbackContext) {
+        notificationCallBackReady = true;
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                  if(lastPush != null) {
+                    FCMPlugin.sendPushPayload( lastPush );
+                  }
+						      lastPush = null;
+						      callbackContext.success();
+                } catch (Exception e) {
+                    callbackContext.error(e.getMessage());
+                }
+            }
+        });
+    }
+
+    public static void sendPushPayload(Map<String, Object> payload) {
+	    try {
+		    JSONObject jo = new JSONObject();
+			for (String key : payload.keySet()) {
+			  jo.put(key, payload.get(key));
+      }
+			String callBack = "javascript:" + notificationCallBack + "(" + jo.toString() + ")";
+			if(notificationCallBackReady && gWebView != null){
+				gWebView.sendJavascript(callBack);
+			}else {
+				lastPush = payload;
+			}
+		} catch (Exception e) {
+			callbackContext.error(TAG, "\tERROR sendPushToView. SAVED NOTIFICATION: " + e.getMessage());
+			lastPush = payload;
+		}
+	}
 
     private void onNotificationOpen(final CallbackContext callbackContext) {
         FirebasePlugin.notificationCallbackContext = new WeakReference<CallbackContext>(callbackContext);

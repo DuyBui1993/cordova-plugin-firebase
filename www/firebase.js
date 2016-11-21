@@ -8,6 +8,16 @@ exports.getToken = function(success, error) {
     exec(success, error, "FirebasePlugin", "getToken", []);
 };
 
+exports.onNotification = function( callback, success, error ){
+	exports.onNotificationReceived = callback;
+	exec(success, error, "FCMPlugin", 'registerNotification',[]);
+}
+
+exports.onNotificationReceived = function(payload){
+	console.log("Received push notification")
+	console.log(payload)
+}
+
 exports.onNotificationOpen = function(success, error) {
     exec(success, error, "FirebasePlugin", "onNotificationOpen", []);
 };

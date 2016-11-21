@@ -10,6 +10,18 @@ exports.getToken = function(success, error) {
     }
 };
 
+exports.onNotification = function(success, error){
+  if (typeof success === 'function') {
+      success();
+  }
+}
+
+exports.onNotificationReceived = function(success, error){
+  if (typeof success === 'function') {
+      success();
+  }
+}
+
 exports.onNotificationOpen = function(success, error) {
 };
 
