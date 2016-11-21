@@ -1,4 +1,4 @@
-package com.gae.scaffolder.plugin;
+package org.apache.cordova.firebase;
 
 import android.app.Activity;
 import android.app.NotificationManager;
